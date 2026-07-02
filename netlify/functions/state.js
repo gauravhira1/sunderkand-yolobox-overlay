@@ -1,6 +1,4 @@
-const { getStore } = require("@netlify/blobs");
-
-const DEFAULT_STATE = {
+let currentState = global.__SUNDERKAND_STATE__ || {
   speed: 30,
   paused: false,
   fontSize: 48,
@@ -9,13 +7,15 @@ const DEFAULT_STATE = {
   text: ""
 };
 
+global.__SUNDERKAND_STATE__ = currentState;
+
 function sanitizeState(input) {
   return {
-    speed: Math.max(0, Math.min(250, Number(input.speed ?? DEFAULT_STATE.speed))),
+    speed: Math.max(0, Math.min(250, Number(input.speed ?? currentState.speed ?? 30))),
     paused: Boolean(input.paused),
-    fontSize: Math.max(24, Math.min(90, Number(input.fontSize ?? DEFAULT_STATE.fontSize))),
-    resetId: Number(input.resetId ?? 0),
-    textVersion: Number(input.textVersion ?? 0),
+    fontSize: Math.max(24, Math.min(90, Number(input.fontSize ?? currentState.fontSize ?? 48))),
+    resetId: Number(input.resetId ?? currentState.resetId ?? 0),
+    textVersion: Number(input.textVersion ?? currentState.textVersion ?? 0),
     text: typeof input.text === "string" ? input.text.slice(0, 600000) : ""
   };
 }
@@ -33,23 +33,39 @@ exports.handler = async function(event) {
     return { statusCode: 204, headers, body: "" };
   }
 
-  const store = getStore("sunderkand-overlay-state");
-  const key = "state";
-
   if (event.httpMethod === "GET") {
-    const saved = await store.get(key, { type: "json" });
-    return { statusCode: 200, headers, body: JSON.stringify(saved || DEFAULT_STATE) };
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(currentState)
+    };
   }
 
   if (event.httpMethod === "POST") {
     let incoming = {};
-    try { incoming = JSON.parse(event.body || "{}"); }
-    catch (e) { return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON" }) }; }
+    try {
+      incoming = JSON.parse(event.body || "{}");
+    } catch (e) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "Invalid JSON" })
+      };
+    }
 
-    const cleaned = sanitizeState(incoming);
-    await store.setJSON(key, cleaned);
-    return { statusCode: 200, headers, body: JSON.stringify(cleaned) };
+    currentState = sanitizeState(incoming);
+    global.__SUNDERKAND_STATE__ = currentState;
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(currentState)
+    };
   }
 
-  return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
+  return {
+    statusCode: 405,
+    headers,
+    body: JSON.stringify({ error: "Method not allowed" })
+  };
 };
