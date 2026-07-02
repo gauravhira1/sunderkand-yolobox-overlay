@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Sunderkand Overlay Control</title>
+<style>
+:root{--bg:#101010;--card:#1d1d1d;--btn:#2b2b2b;--text:#fff;--muted:#bbb;--accent:#2f7cff;--safeTop:env(safe-area-inset-top);--safeBottom:env(safe-area-inset-bottom)}
+*{box-sizing:border-box}body{margin:0;padding:calc(16px + var(--safeTop)) 14px calc(24px + var(--safeBottom));background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+h1{font-size:24px;margin:0 0 4px}.sub{color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.4}.card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:14px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+.status{display:flex;justify-content:space-between;gap:10px;font-size:15px;color:var(--muted)}.speed{font-size:44px;font-weight:800;line-height:1;margin:10px 0 4px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+button{border:0;border-radius:14px;padding:16px 10px;background:var(--btn);color:#fff;font-size:17px;font-weight:700}button:active{transform:scale(.97)}.primary{background:var(--accent)}.danger{background:#b3261e}
+textarea{width:100%;height:180px;border:0;border-radius:12px;padding:12px;background:#0f0f0f;color:#fff;font-size:17px;line-height:1.45;font-family:"Kohinoor Devanagari","Noto Sans Devanagari","Mangal",Arial,sans-serif;resize:vertical}
+.note{color:var(--muted);font-size:13px;line-height:1.4;margin-top:8px}.ok{color:#00d26a}.bad{color:#ff6b6b}a{color:#8ab4ff;word-break:break-all}
+</style>
+</head>
+<body>
+<h1>Sunderkand Control</h1>
+<div class="sub">Use this page on your iPhone. Keep the overlay URL open on YoloBox Pro.</div>
+<div class="card"><div class="status"><span>Connection: <b id="conn">checking...</b></span><span id="pausedLabel">Playing</span></div><div class="speed"><span id="speedValue">30</span></div><div class="sub">scroll speed</div></div>
+<div class="card grid"><button class="primary" id="playPauseBtn">Pause</button><button id="resetBtn">Reset</button><button id="slowerBtn">− Slower</button><button id="fasterBtn">+ Faster</button></div>
+<div class="card grid3"><button id="fontSmallBtn">A−</button><button id="fontResetBtn">A Reset</button><button id="fontBigBtn">A+</button></div>
+<div class="card"><button id="loadBtn" style="width:100%;">Reload Current State</button><div class="note">Overlay URL for YoloBox:<br><a href="./overlay.html" target="_blank" id="overlayLink"></a></div></div>
+<div class="card"><h2 style="font-size:18px;margin:0 0 10px;">Optional: paste custom text</h2><textarea id="customText" placeholder="Paste full Sunderkand text here if needed."></textarea><div class="grid" style="margin-top:10px;"><button id="sendTextBtn">Send Text</button><button class="danger" id="clearTextBtn">Clear Custom</button></div><div class="note">Usually you do not need this. The overlay automatically loads Sunderkand online.</div></div>
+<script>
+const conn=document.getElementById("conn"),speedValue=document.getElementById("speedValue"),pausedLabel=document.getElementById("pausedLabel"),playPauseBtn=document.getElementById("playPauseBtn"),customText=document.getElementById("customText"),overlayLink=document.getElementById("overlayLink");
+overlayLink.textContent=location.origin+location.pathname.replace(/control\.html$/,"overlay.html");
+let state={speed:30,paused:false,fontSize:48,resetId:0,textVersion:0,text:""};
+function render(){speedValue.textContent=Math.round(state.speed);pausedLabel.textContent=state.paused?"Paused":"Playing";playPauseBtn.textContent=state.paused?"Play":"Pause"}
+async function loadState(){try{const res=await fetch("/.netlify/functions/state",{cache:"no-store"});if(!res.ok)throw new Error("Load failed");state=await res.json();conn.textContent="online";conn.className="ok";render()}catch(e){conn.textContent="offline/error";conn.className="bad"}}
+async function saveState(){render();try{const res=await fetch("/.netlify/functions/state",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state)});if(!res.ok)throw new Error("Save failed");state=await res.json();conn.textContent="online";conn.className="ok";render()}catch(e){conn.textContent="save error";conn.className="bad"}}
+document.getElementById("playPauseBtn").onclick=()=>{state.paused=!state.paused;saveState()};
+document.getElementById("resetBtn").onclick=()=>{state.resetId=Number(state.resetId||0)+1;saveState()};
+document.getElementById("slowerBtn").onclick=()=>{state.speed=Math.max(0,Number(state.speed||0)-5);saveState()};
+document.getElementById("fasterBtn").onclick=()=>{state.speed=Math.min(250,Number(state.speed||0)+5);saveState()};
+document.getElementById("fontSmallBtn").onclick=()=>{state.fontSize=Math.max(24,Number(state.fontSize||48)-3);saveState()};
+document.getElementById("fontResetBtn").onclick=()=>{state.fontSize=48;saveState()};
+document.getElementById("fontBigBtn").onclick=()=>{state.fontSize=Math.min(90,Number(state.fontSize||48)+3);saveState()};
+document.getElementById("loadBtn").onclick=loadState;
+document.getElementById("sendTextBtn").onclick=()=>{const text=customText.value.trim();if(!text)return alert("Paste text first.");state.text=text;state.textVersion=Number(state.textVersion||0)+1;saveState()};
+document.getElementById("clearTextBtn").onclick=()=>{state.text="";state.textVersion=Number(state.textVersion||0)+1;saveState();customText.value=""};
+loadState();
+</script>
+</body>
+</html>
