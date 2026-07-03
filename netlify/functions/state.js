@@ -5,6 +5,7 @@ let currentState = global.__SUNDERKAND_STATE__ || {
   resetId: 0,
   textVersion: 0,
   text: "",
+  textFile: "hanuman-chalisa.txt",
   textColor: "#ffffff",
   shadowColor: "#000000"
 };
@@ -18,6 +19,12 @@ function safeColor(value, fallback) {
   return fallback;
 }
 
+function safeFile(value, fallback) {
+  const allowed = ["jai-ambe-gauri.txt", "hanuman-chalisa.txt", "sunderkand.txt"];
+  if (allowed.includes(value)) return value;
+  return fallback;
+}
+
 function sanitizeState(input) {
   return {
     speed: Math.max(0, Math.min(250, Number(input.speed ?? currentState.speed ?? 30))),
@@ -26,6 +33,7 @@ function sanitizeState(input) {
     resetId: Number(input.resetId ?? currentState.resetId ?? 0),
     textVersion: Number(input.textVersion ?? currentState.textVersion ?? 0),
     text: typeof input.text === "string" ? input.text.slice(0, 600000) : "",
+    textFile: safeFile(input.textFile ?? currentState.textFile, "hanuman-chalisa.txt"),
     textColor: safeColor(input.textColor ?? currentState.textColor, "#ffffff"),
     shadowColor: safeColor(input.shadowColor ?? currentState.shadowColor, "#000000")
   };
@@ -40,43 +48,21 @@ exports.handler = async function(event) {
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
   };
 
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers, body: "" };
-  }
+  if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
 
   if (event.httpMethod === "GET") {
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(currentState)
-    };
+    return { statusCode: 200, headers, body: JSON.stringify(currentState) };
   }
 
   if (event.httpMethod === "POST") {
     let incoming = {};
-    try {
-      incoming = JSON.parse(event.body || "{}");
-    } catch (e) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "Invalid JSON" })
-      };
-    }
+    try { incoming = JSON.parse(event.body || "{}"); }
+    catch (e) { return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON" }) }; }
 
     currentState = sanitizeState(incoming);
     global.__SUNDERKAND_STATE__ = currentState;
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(currentState)
-    };
+    return { statusCode: 200, headers, body: JSON.stringify(currentState) };
   }
 
-  return {
-    statusCode: 405,
-    headers,
-    body: JSON.stringify({ error: "Method not allowed" })
-  };
+  return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
 };
