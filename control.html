@@ -12,6 +12,9 @@ h1{font-size:24px;margin:0 0 4px}.sub{color:var(--muted);font-size:14px;margin-b
 button{border:0;border-radius:14px;padding:16px 10px;background:var(--btn);color:#fff;font-size:17px;font-weight:700}button:active{transform:scale(.97)}.primary{background:var(--accent)}.danger{background:#b3261e}
 textarea{width:100%;height:180px;border:0;border-radius:12px;padding:12px;background:#0f0f0f;color:#fff;font-size:17px;line-height:1.45;font-family:"Kohinoor Devanagari","Noto Sans Devanagari","Mangal",Arial,sans-serif;resize:vertical}
 .note{color:var(--muted);font-size:13px;line-height:1.4;margin-top:8px}.ok{color:#00d26a}.bad{color:#ff6b6b}a{color:#8ab4ff;word-break:break-all}
+.colorGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.swatch{min-height:48px;border:2px solid rgba(255,255,255,.25);font-size:13px;text-shadow:1px 1px 0 #000}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}.inputWrap{background:#0f0f0f;border-radius:12px;padding:10px}
+label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px}input[type=color]{width:100%;height:44px;border:0;background:transparent}
 </style>
 </head>
 <body>
@@ -20,15 +23,44 @@ textarea{width:100%;height:180px;border:0;border-radius:12px;padding:12px;backgr
 <div class="card"><div class="status"><span>Connection: <b id="conn">checking...</b></span><span id="pausedLabel">Playing</span></div><div class="speed"><span id="speedValue">30</span></div><div class="sub">scroll speed</div></div>
 <div class="card grid"><button class="primary" id="playPauseBtn">Pause</button><button id="resetBtn">Reset</button><button id="slowerBtn">− Slower</button><button id="fasterBtn">+ Faster</button></div>
 <div class="card grid3"><button id="fontSmallBtn">A−</button><button id="fontResetBtn">A Reset</button><button id="fontBigBtn">A+</button></div>
-<div class="card"><button id="loadBtn" style="width:100%;">Reload Current State</button><div class="note">Overlay URL for YoloBox:<br><a href="./overlay.html" target="_blank" id="overlayLink"></a></div></div>
-<div class="card"><h2 style="font-size:18px;margin:0 0 10px;">Optional: paste custom text</h2><textarea id="customText" placeholder="Paste full Sunderkand text here if needed."></textarea><div class="grid" style="margin-top:10px;"><button id="sendTextBtn">Send Text</button><button class="danger" id="clearTextBtn">Clear Custom</button></div><div class="note">Usually you do not need this. The overlay automatically loads Sunderkand online.</div></div>
+
+<div class="card">
+  <h2 style="font-size:18px;margin:0 0 10px;">Text colour</h2>
+  <div class="colorGrid">
+    <button class="swatch" data-color="#ffffff" style="background:#ffffff;color:#111;text-shadow:none;">White</button>
+    <button class="swatch" data-color="#ffff00" style="background:#ffff00;color:#111;text-shadow:none;">Yellow</button>
+    <button class="swatch" data-color="#ff9900" style="background:#ff9900;">Saffron</button>
+    <button class="swatch" data-color="#ff0000" style="background:#ff0000;">Red</button>
+    <button class="swatch" data-color="#00ffff" style="background:#00ffff;color:#111;text-shadow:none;">Cyan</button>
+    <button class="swatch" data-color="#00ff00" style="background:#00ff00;color:#111;text-shadow:none;">Green</button>
+    <button class="swatch" data-color="#ff00ff" style="background:#ff00ff;">Pink</button>
+    <button class="swatch" data-color="#000000" style="background:#000000;">Black</button>
+  </div>
+  <div class="row" style="margin-top:12px;">
+    <div class="inputWrap">
+      <label>Custom text colour</label>
+      <input type="color" id="textColorPicker" value="#ffffff">
+    </div>
+    <div class="inputWrap">
+      <label>Shadow/outline colour</label>
+      <input type="color" id="shadowColorPicker" value="#000000">
+    </div>
+  </div>
+  <div class="grid" style="margin-top:10px;">
+    <button id="applyColorBtn">Apply Colours</button>
+    <button id="defaultColorBtn">White + Black</button>
+  </div>
+  <div class="note">For live video overlay, white or yellow text with black outline is usually easiest to read.</div>
+</div>
+
+<div class="card"><button id="loadBtn" style="width:100%;">Reload Current State</button><div class="note">Overlay URLs:<br><a href="./overlay.html" target="_blank">Vertical overlay</a><br><a href="./overlay-horizontal.html" target="_blank">Horizontal ticker overlay</a></div></div>
+<div class="card"><h2 style="font-size:18px;margin:0 0 10px;">Optional: paste custom text</h2><textarea id="customText" placeholder="Paste full Sunderkand, Hanuman Chalisa, Aarti, or any text here."></textarea><div class="grid" style="margin-top:10px;"><button id="sendTextBtn">Send Text</button><button class="danger" id="clearTextBtn">Clear Custom</button></div><div class="note">After sending text, tap Reset.</div></div>
 <script>
-const conn=document.getElementById("conn"),speedValue=document.getElementById("speedValue"),pausedLabel=document.getElementById("pausedLabel"),playPauseBtn=document.getElementById("playPauseBtn"),customText=document.getElementById("customText"),overlayLink=document.getElementById("overlayLink");
-overlayLink.textContent=location.origin+location.pathname.replace(/control\.html$/,"overlay.html");
-let state={speed:30,paused:false,fontSize:48,resetId:0,textVersion:0,text:""};
-function render(){speedValue.textContent=Math.round(state.speed);pausedLabel.textContent=state.paused?"Paused":"Playing";playPauseBtn.textContent=state.paused?"Play":"Pause"}
-async function loadState(){try{const res=await fetch("/.netlify/functions/state",{cache:"no-store"});if(!res.ok)throw new Error("Load failed");state=await res.json();conn.textContent="online";conn.className="ok";render()}catch(e){conn.textContent="offline/error";conn.className="bad"}}
-async function saveState(){render();try{const res=await fetch("/.netlify/functions/state",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state)});if(!res.ok)throw new Error("Save failed");state=await res.json();conn.textContent="online";conn.className="ok";render()}catch(e){conn.textContent="save error";conn.className="bad"}}
+const conn=document.getElementById("conn"),speedValue=document.getElementById("speedValue"),pausedLabel=document.getElementById("pausedLabel"),playPauseBtn=document.getElementById("playPauseBtn"),customText=document.getElementById("customText"),textColorPicker=document.getElementById("textColorPicker"),shadowColorPicker=document.getElementById("shadowColorPicker");
+let state={speed:30,paused:false,fontSize:48,resetId:0,textVersion:0,text:"",textColor:"#ffffff",shadowColor:"#000000"};
+function render(){speedValue.textContent=Math.round(state.speed);pausedLabel.textContent=state.paused?"Paused":"Playing";playPauseBtn.textContent=state.paused?"Play":"Pause";textColorPicker.value=state.textColor||"#ffffff";shadowColorPicker.value=state.shadowColor||"#000000"}
+async function loadState(){try{const res=await fetch("/.netlify/functions/state",{cache:"no-store"});if(!res.ok)throw new Error("Load failed");state=await res.json();state.textColor=state.textColor||"#ffffff";state.shadowColor=state.shadowColor||"#000000";conn.textContent="online";conn.className="ok";render()}catch(e){conn.textContent="offline/error";conn.className="bad"}}
+async function saveState(){render();try{const res=await fetch("/.netlify/functions/state",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state)});if(!res.ok)throw new Error("Save failed");state=await res.json();state.textColor=state.textColor||"#ffffff";state.shadowColor=state.shadowColor||"#000000";conn.textContent="online";conn.className="ok";render()}catch(e){conn.textContent="save error";conn.className="bad"}}
 document.getElementById("playPauseBtn").onclick=()=>{state.paused=!state.paused;saveState()};
 document.getElementById("resetBtn").onclick=()=>{state.resetId=Number(state.resetId||0)+1;saveState()};
 document.getElementById("slowerBtn").onclick=()=>{state.speed=Math.max(0,Number(state.speed||0)-5);saveState()};
@@ -39,6 +71,9 @@ document.getElementById("fontBigBtn").onclick=()=>{state.fontSize=Math.min(90,Nu
 document.getElementById("loadBtn").onclick=loadState;
 document.getElementById("sendTextBtn").onclick=()=>{const text=customText.value.trim();if(!text)return alert("Paste text first.");state.text=text;state.textVersion=Number(state.textVersion||0)+1;saveState()};
 document.getElementById("clearTextBtn").onclick=()=>{state.text="";state.textVersion=Number(state.textVersion||0)+1;saveState();customText.value=""};
+document.querySelectorAll(".swatch").forEach(btn=>{btn.onclick=()=>{state.textColor=btn.dataset.color;saveState()}});
+document.getElementById("applyColorBtn").onclick=()=>{state.textColor=textColorPicker.value;state.shadowColor=shadowColorPicker.value;saveState()};
+document.getElementById("defaultColorBtn").onclick=()=>{state.textColor="#ffffff";state.shadowColor="#000000";saveState()};
 loadState();
 </script>
 </body>

@@ -5,169 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Sunderkand Horizontal Ticker Overlay for YoloBox</title>
 <style>
-:root{
-  --text:#fff;
-  --shadow:#000;
-  --fontSize:46px;
-  --lineHeight:1.25;
-}
-html,body{
-  margin:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  background:transparent;
-  font-family:"Noto Sans Devanagari","Mangal","Kokila","Arial Unicode MS",Arial,sans-serif;
-}
-#stage{
-  position:fixed;
-  inset:0;
-  background:transparent;
-  overflow:hidden;
-}
-#tickerBox{
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:4vh;
-  height:90px;
-  background:transparent;
-  overflow:hidden;
-  pointer-events:none;
-}
-#ticker{
-  position:absolute;
-  left:0;
-  top:50%;
-  color:var(--text);
-  font-size:var(--fontSize);
-  line-height:var(--lineHeight);
-  font-weight:800;
-  white-space:nowrap;
-  text-shadow:
-    3px 3px 0 var(--shadow),
-    -2px 2px 0 var(--shadow),
-    2px -2px 0 var(--shadow),
-    -2px -2px 0 var(--shadow);
-  will-change:transform;
-}
+:root{--text:#fff;--shadow:#000;--fontSize:46px;--lineHeight:1.25}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:"Noto Sans Devanagari","Mangal","Kokila","Arial Unicode MS",Arial,sans-serif}
+#stage{position:fixed;inset:0;background:transparent;overflow:hidden}
+#tickerBox{position:absolute;left:0;right:0;bottom:4vh;height:90px;background:transparent;overflow:hidden;pointer-events:none}
+#ticker{position:absolute;left:0;top:50%;color:var(--text);font-size:var(--fontSize);line-height:var(--lineHeight);font-weight:800;white-space:nowrap;text-shadow:3px 3px 0 var(--shadow),-2px 2px 0 var(--shadow),2px -2px 0 var(--shadow),-2px -2px 0 var(--shadow);will-change:transform}
 </style>
 </head>
 <body>
-<div id="stage">
-  <div id="tickerBox">
-    <div id="ticker">Loading Sunderkand...</div>
-  </div>
-</div>
-
+<div id="stage"><div id="tickerBox"><div id="ticker">Loading Sunderkand...</div></div></div>
 <script>
 const RAW_URL="https://raw.githubusercontent.com/WirelessAlien/Ramcharitmanas/main/main/data/verses/sundarkanda.json";
 const ticker=document.getElementById("ticker");
-
-let x=window.innerWidth;
-let speed=90;
-let paused=false;
-let fontSize=46;
-let lastTime=null;
-let lastResetId=0;
-let lastTextVersion=0;
-
-function resetTicker(){
-  x=window.innerWidth+40;
-  ticker.style.transform=`translate(${x}px, -50%)`;
-}
-
-function cleanForTicker(text){
-  return (text||"")
-    .replace(/\r\n/g,"\n")
-    .replace(/\r/g,"\n")
-    .replace(/\n+/g,"   •   ")
-    .replace(/\s+/g," ")
-    .trim();
-}
-
-function formatSundarkandJson(data){
-  return data.map(item=>{
-    const n=item["verse-number"]??"";
-    const content=(item.content||"")
-      .replace(/\r\n/g,"\n")
-      .replace(/\r/g,"\n")
-      .replace(/\n{3,}/g,"\n\n")
-      .trim();
-    return `॥ ${n} ॥ ${content}`;
-  }).join("   •   ");
-}
-
-async function loadDefaultText(){
-  try{
-    const local=localStorage.getItem("sunderkand_overlay_text");
-    if(local&&local.length>1000){
-      ticker.textContent=cleanForTicker(local);
-      resetTicker();
-      return;
-    }
-    const res=await fetch(RAW_URL,{cache:"force-cache"});
-    if(!res.ok)throw new Error("Could not load");
-    const data=await res.json();
-    const text=formatSundarkandJson(data);
-    localStorage.setItem("sunderkand_overlay_text",text);
-    ticker.textContent=cleanForTicker(text);
-    resetTicker();
-  }catch(e){
-    ticker.textContent="Could not load text. Open control page and paste text manually.";
-    paused=true;
-  }
-}
-
-async function fetchState(){
-  try{
-    const res=await fetch("/.netlify/functions/state",{cache:"no-store"});
-    if(!res.ok)return;
-    const state=await res.json();
-
-    speed=Number(state.speed??30)*3;
-    paused=Boolean(state.paused);
-    fontSize=Number(state.fontSize??46);
-    ticker.style.fontSize=fontSize+"px";
-
-    if(Number(state.resetId||0)!==lastResetId){
-      lastResetId=Number(state.resetId||0);
-      resetTicker();
-    }
-
-    if(Number(state.textVersion||0)!==lastTextVersion&&state.text&&state.text.length>0){
-      lastTextVersion=Number(state.textVersion||0);
-      ticker.textContent=cleanForTicker(state.text);
-      localStorage.setItem("sunderkand_overlay_text",state.text);
-      resetTicker();
-    }
-  }catch(e){}
-}
-
-function animate(time){
-  if(lastTime===null)lastTime=time;
-  const dt=(time-lastTime)/1000;
-  lastTime=time;
-
-  if(!paused){
-    x-=speed*dt;
-    ticker.style.transform=`translate(${x}px, -50%)`;
-
-    const tickerWidth=ticker.offsetWidth;
-    if(x < -tickerWidth-80){
-      resetTicker();
-    }
-  }
-
-  requestAnimationFrame(animate);
-}
-
-window.addEventListener("resize", resetTicker);
-
-loadDefaultText();
-fetchState();
-setInterval(fetchState,700);
-requestAnimationFrame(animate);
+let x=window.innerWidth,speed=90,paused=false,fontSize=46,lastTime=null,lastResetId=0,lastTextVersion=0;
+function resetTicker(){x=window.innerWidth+40;ticker.style.transform=`translate(${x}px, -50%)`}
+function setColours(textColor,shadowColor){ticker.style.color=textColor||"#ffffff";document.documentElement.style.setProperty("--shadow",shadowColor||"#000000")}
+function cleanForTicker(text){return(text||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n").replace(/\n+/g,"   •   ").replace(/\s+/g," ").trim()}
+function formatSundarkandJson(data){return data.map(item=>{const n=item["verse-number"]??"";const content=(item.content||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n").replace(/\n{3,}/g,"\n\n").trim();return `॥ ${n} ॥ ${content}`}).join("   •   ")}
+async function loadDefaultText(){try{const local=localStorage.getItem("sunderkand_overlay_text");if(local&&local.length>1000){ticker.textContent=cleanForTicker(local);resetTicker();return}const res=await fetch(RAW_URL,{cache:"force-cache"});if(!res.ok)throw new Error("Could not load");const data=await res.json();const text=formatSundarkandJson(data);localStorage.setItem("sunderkand_overlay_text",text);ticker.textContent=cleanForTicker(text);resetTicker()}catch(e){ticker.textContent="Could not load text. Open control page and paste text manually.";paused=true}}
+async function fetchState(){try{const res=await fetch("/.netlify/functions/state",{cache:"no-store"});if(!res.ok)return;const state=await res.json();speed=Number(state.speed??30)*3;paused=Boolean(state.paused);fontSize=Number(state.fontSize??46);ticker.style.fontSize=fontSize+"px";setColours(state.textColor,state.shadowColor);if(Number(state.resetId||0)!==lastResetId){lastResetId=Number(state.resetId||0);resetTicker()}if(Number(state.textVersion||0)!==lastTextVersion&&state.text&&state.text.length>0){lastTextVersion=Number(state.textVersion||0);ticker.textContent=cleanForTicker(state.text);localStorage.setItem("sunderkand_overlay_text",state.text);resetTicker()}}catch(e){}}
+function animate(time){if(lastTime===null)lastTime=time;const dt=(time-lastTime)/1000;lastTime=time;if(!paused){x-=speed*dt;ticker.style.transform=`translate(${x}px, -50%)`;if(x < -ticker.offsetWidth-80)resetTicker()}requestAnimationFrame(animate)}
+window.addEventListener("resize",resetTicker);loadDefaultText();fetchState();setInterval(fetchState,700);requestAnimationFrame(animate);
 </script>
 </body>
 </html>

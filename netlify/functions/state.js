@@ -4,10 +4,19 @@ let currentState = global.__SUNDERKAND_STATE__ || {
   fontSize: 48,
   resetId: 0,
   textVersion: 0,
-  text: ""
+  text: "",
+  textColor: "#ffffff",
+  shadowColor: "#000000"
 };
 
 global.__SUNDERKAND_STATE__ = currentState;
+
+function safeColor(value, fallback) {
+  if (typeof value !== "string") return fallback;
+  const v = value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) return v;
+  return fallback;
+}
 
 function sanitizeState(input) {
   return {
@@ -16,7 +25,9 @@ function sanitizeState(input) {
     fontSize: Math.max(24, Math.min(90, Number(input.fontSize ?? currentState.fontSize ?? 48))),
     resetId: Number(input.resetId ?? currentState.resetId ?? 0),
     textVersion: Number(input.textVersion ?? currentState.textVersion ?? 0),
-    text: typeof input.text === "string" ? input.text.slice(0, 600000) : ""
+    text: typeof input.text === "string" ? input.text.slice(0, 600000) : "",
+    textColor: safeColor(input.textColor ?? currentState.textColor, "#ffffff"),
+    shadowColor: safeColor(input.shadowColor ?? currentState.shadowColor, "#000000")
   };
 }
 
