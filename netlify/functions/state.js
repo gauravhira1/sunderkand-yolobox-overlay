@@ -7,7 +7,9 @@ let currentState = global.__SUNDERKAND_STATE__ || {
   text: "",
   textFile: "hanuman-chalisa.txt",
   textColor: "#ffffff",
-  shadowColor: "#000000"
+  shadowColor: "#000000",
+  jumpSeconds: 0,
+  jumpRequestId: 0
 };
 
 global.__SUNDERKAND_STATE__ = currentState;
@@ -35,7 +37,9 @@ function sanitizeState(input) {
     text: typeof input.text === "string" ? input.text.slice(0, 600000) : "",
     textFile: safeFile(input.textFile ?? currentState.textFile, "hanuman-chalisa.txt"),
     textColor: safeColor(input.textColor ?? currentState.textColor, "#ffffff"),
-    shadowColor: safeColor(input.shadowColor ?? currentState.shadowColor, "#000000")
+    shadowColor: safeColor(input.shadowColor ?? currentState.shadowColor, "#000000"),
+    jumpSeconds: Number(input.jumpSeconds ?? 0),
+    jumpRequestId: Number(input.jumpRequestId ?? currentState.jumpRequestId ?? 0)
   };
 }
 

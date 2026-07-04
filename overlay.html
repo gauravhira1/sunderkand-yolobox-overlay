@@ -12,63 +12,17 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 #lyrics{position:absolute;left:5vw;right:5vw;top:100%;color:var(--text);font-size:var(--fontSize);line-height:var(--lineHeight);font-weight:800;text-align:center;white-space:pre-line;text-shadow:3px 3px 0 var(--shadow),-2px 2px 0 var(--shadow),2px -2px 0 var(--shadow),-2px -2px 0 var(--shadow);will-change:transform}
 </style>
 </head>
-<body><div id="stage"><div id="lyricsBox"><div id="lyrics">Loading text...</div></div></div><script>
-const lyricsEl = document.getElementById("lyrics");
-let y=0,speed=30,paused=false,fontSize=48,lastTime=null,lastResetId=0,lastTextVersion=0,lastTextFile="";
+<body>
+<div id="stage"><div id="lyricsBox"><div id="lyrics">Loading text...</div></div></div>
+<script>
+const lyricsEl=document.getElementById("lyrics");
+let y=0,speed=30,paused=false,fontSize=48,lastTime=null,lastResetId=0,lastTextVersion=0,lastTextFile="",lastJumpRequestId=0;
 function resetScroll(){y=0;lyricsEl.style.transform="translateY(0px)"}
 function setColours(textColor,shadowColor){lyricsEl.style.color=textColor||"#ffffff";document.documentElement.style.setProperty("--shadow",shadowColor||"#000000")}
-async function loadTextFile(fileName){
-  try{
-    const res=await fetch("./"+fileName+"?v="+Date.now(),{cache:"no-store"});
-    if(!res.ok)throw new Error("Could not load "+fileName);
-    const text=await res.text();
-    lyricsEl.textContent=text.trim() || "Text file is empty: "+fileName;
-    lastTextFile=fileName;
-    resetScroll();
-  }catch(e){
-    lyricsEl.textContent="Could not load text file: "+fileName+"\nCheck that it exists in GitHub root folder.";
-    paused=true;
-  }
-}
-async function fetchState(){
-  try{
-    const res=await fetch("/.netlify/functions/state",{cache:"no-store"});
-    if(!res.ok)return;
-    const state=await res.json();
-    speed=Number(state.speed??speed);
-    paused=Boolean(state.paused);
-    fontSize=Number(state.fontSize??fontSize);
-    lyricsEl.style.fontSize=fontSize+"px";
-    setColours(state.textColor,state.shadowColor);
-    const chosenFile=state.textFile||"hanuman-chalisa.txt";
-    if(state.text&&state.text.length>0){
-      if(Number(state.textVersion||0)!==lastTextVersion){
-        lastTextVersion=Number(state.textVersion||0);
-        lyricsEl.textContent=state.text;
-        lastTextFile="temporary";
-        resetScroll();
-      }
-    }else if(chosenFile!==lastTextFile || Number(state.textVersion||0)!==lastTextVersion){
-      lastTextVersion=Number(state.textVersion||0);
-      await loadTextFile(chosenFile);
-    }
-    if(Number(state.resetId||0)!==lastResetId){
-      lastResetId=Number(state.resetId||0);
-      resetScroll();
-    }
-  }catch(e){}
-}
-function animate(time){
-  if(lastTime===null)lastTime=time;
-  const dt=(time-lastTime)/1000;lastTime=time;
-  if(!paused){
-    y-=speed*dt;
-    lyricsEl.style.transform=`translateY(${y}px)`;
-    const box=document.getElementById("lyricsBox");
-    if(lyricsEl.getBoundingClientRect().bottom<box.getBoundingClientRect().top-80)resetScroll();
-  }
-  requestAnimationFrame(animate);
-}
+async function loadTextFile(fileName){try{const res=await fetch("./"+fileName+"?v="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Could not load "+fileName);const text=await res.text();lyricsEl.textContent=text.trim()||"Text file is empty: "+fileName;lastTextFile=fileName;resetScroll()}catch(e){lyricsEl.textContent="Could not load text file: "+fileName+"\nCheck that it exists in GitHub root folder.";paused=true}}
+async function fetchState(){try{const res=await fetch("/.netlify/functions/state",{cache:"no-store"});if(!res.ok)return;const state=await res.json();speed=Number(state.speed??speed);paused=Boolean(state.paused);fontSize=Number(state.fontSize??fontSize);lyricsEl.style.fontSize=fontSize+"px";setColours(state.textColor,state.shadowColor);const chosenFile=state.textFile||"hanuman-chalisa.txt";if(state.text&&state.text.length>0){if(Number(state.textVersion||0)!==lastTextVersion){lastTextVersion=Number(state.textVersion||0);lyricsEl.textContent=state.text;lastTextFile="temporary";resetScroll()}}else if(chosenFile!==lastTextFile||Number(state.textVersion||0)!==lastTextVersion){lastTextVersion=Number(state.textVersion||0);await loadTextFile(chosenFile)}if(Number(state.jumpRequestId||0)!==lastJumpRequestId){lastJumpRequestId=Number(state.jumpRequestId||0);const jumpSeconds=Number(state.jumpSeconds||0);y-=speed*jumpSeconds;lyricsEl.style.transform=`translateY(${y}px)`}if(Number(state.resetId||0)!==lastResetId){lastResetId=Number(state.resetId||0);resetScroll()}}catch(e){}}
+function animate(time){if(lastTime===null)lastTime=time;const dt=(time-lastTime)/1000;lastTime=time;if(!paused){y-=speed*dt;lyricsEl.style.transform=`translateY(${y}px)`;const box=document.getElementById("lyricsBox");if(lyricsEl.getBoundingClientRect().bottom<box.getBoundingClientRect().top-80)resetScroll()}requestAnimationFrame(animate)}
 loadTextFile("hanuman-chalisa.txt");fetchState();setInterval(fetchState,700);requestAnimationFrame(animate);
-</script></body>
+</script>
+</body>
 </html>

@@ -16,63 +16,14 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 <div id="stage"><div id="tickerBox"><div id="ticker">Loading text...</div></div></div>
 <script>
 const ticker=document.getElementById("ticker");
-let x=window.innerWidth,speed=90,paused=false,fontSize=46,lastTime=null,lastResetId=0,lastTextVersion=0,lastTextFile="";
+let x=window.innerWidth,speed=90,paused=false,fontSize=46,lastTime=null,lastResetId=0,lastTextVersion=0,lastTextFile="",lastJumpRequestId=0;
 function resetTicker(){x=window.innerWidth+40;ticker.style.transform=`translate(${x}px, -50%)`}
 function setColours(textColor,shadowColor){ticker.style.color=textColor||"#ffffff";document.documentElement.style.setProperty("--shadow",shadowColor||"#000000")}
 function cleanForTicker(text){return(text||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n").replace(/\n+/g,"   •   ").replace(/\s+/g," ").trim()}
-async function loadTextFile(fileName){
-  try{
-    const res=await fetch("./"+fileName+"?v="+Date.now(),{cache:"no-store"});
-    if(!res.ok)throw new Error("Could not load "+fileName);
-    const text=await res.text();
-    ticker.textContent=cleanForTicker(text) || "Text file is empty: "+fileName;
-    lastTextFile=fileName;
-    resetTicker();
-  }catch(e){
-    ticker.textContent="Could not load text file: "+fileName+" - check GitHub root folder.";
-    paused=true;
-  }
-}
-async function fetchState(){
-  try{
-    const res=await fetch("/.netlify/functions/state",{cache:"no-store"});
-    if(!res.ok)return;
-    const state=await res.json();
-    speed=Number(state.speed??30)*3;
-    paused=Boolean(state.paused);
-    fontSize=Number(state.fontSize??46);
-    ticker.style.fontSize=fontSize+"px";
-    setColours(state.textColor,state.shadowColor);
-    const chosenFile=state.textFile||"hanuman-chalisa.txt";
-    if(state.text&&state.text.length>0){
-      if(Number(state.textVersion||0)!==lastTextVersion){
-        lastTextVersion=Number(state.textVersion||0);
-        ticker.textContent=cleanForTicker(state.text);
-        lastTextFile="temporary";
-        resetTicker();
-      }
-    }else if(chosenFile!==lastTextFile || Number(state.textVersion||0)!==lastTextVersion){
-      lastTextVersion=Number(state.textVersion||0);
-      await loadTextFile(chosenFile);
-    }
-    if(Number(state.resetId||0)!==lastResetId){
-      lastResetId=Number(state.resetId||0);
-      resetTicker();
-    }
-  }catch(e){}
-}
-function animate(time){
-  if(lastTime===null)lastTime=time;
-  const dt=(time-lastTime)/1000;lastTime=time;
-  if(!paused){
-    x-=speed*dt;
-    ticker.style.transform=`translate(${x}px, -50%)`;
-    if(x < -ticker.offsetWidth-80)resetTicker();
-  }
-  requestAnimationFrame(animate);
-}
-window.addEventListener("resize",resetTicker);
-loadTextFile("hanuman-chalisa.txt");fetchState();setInterval(fetchState,700);requestAnimationFrame(animate);
+async function loadTextFile(fileName){try{const res=await fetch("./"+fileName+"?v="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Could not load "+fileName);const text=await res.text();ticker.textContent=cleanForTicker(text)||"Text file is empty: "+fileName;lastTextFile=fileName;resetTicker()}catch(e){ticker.textContent="Could not load text file: "+fileName+" - check GitHub root folder.";paused=true}}
+async function fetchState(){try{const res=await fetch("/.netlify/functions/state",{cache:"no-store"});if(!res.ok)return;const state=await res.json();speed=Number(state.speed??30)*3;paused=Boolean(state.paused);fontSize=Number(state.fontSize??46);ticker.style.fontSize=fontSize+"px";setColours(state.textColor,state.shadowColor);const chosenFile=state.textFile||"hanuman-chalisa.txt";if(state.text&&state.text.length>0){if(Number(state.textVersion||0)!==lastTextVersion){lastTextVersion=Number(state.textVersion||0);ticker.textContent=cleanForTicker(state.text);lastTextFile="temporary";resetTicker()}}else if(chosenFile!==lastTextFile||Number(state.textVersion||0)!==lastTextVersion){lastTextVersion=Number(state.textVersion||0);await loadTextFile(chosenFile)}if(Number(state.jumpRequestId||0)!==lastJumpRequestId){lastJumpRequestId=Number(state.jumpRequestId||0);const jumpSeconds=Number(state.jumpSeconds||0);x-=speed*jumpSeconds;ticker.style.transform=`translate(${x}px, -50%)`}if(Number(state.resetId||0)!==lastResetId){lastResetId=Number(state.resetId||0);resetTicker()}}catch(e){}}
+function animate(time){if(lastTime===null)lastTime=time;const dt=(time-lastTime)/1000;lastTime=time;if(!paused){x-=speed*dt;ticker.style.transform=`translate(${x}px, -50%)`;if(x<-ticker.offsetWidth-80)resetTicker()}requestAnimationFrame(animate)}
+window.addEventListener("resize",resetTicker);loadTextFile("hanuman-chalisa.txt");fetchState();setInterval(fetchState,700);requestAnimationFrame(animate);
 </script>
 </body>
 </html>
